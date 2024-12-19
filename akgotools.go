@@ -13,44 +13,57 @@ import (
 )
 
 // RenameFiles rename the files
-func RenameFiles(root, filepattern string) {
+func RenameFiles(root, filepattern string) error {
+	// ensure root ends with a separator
+	root = filepath.Clean(root) + string(os.PathSeparator)
 
 	// list all files to rename
 	bhavcopies, err := filepath.Glob(root + filepattern)
 	if err != nil {
 		log.Fatalln("Bad Pattern,", err)
+		return err
 	}
 
 	totalFiles := len(bhavcopies)
+	if totalFiles == 0 {
+		log.Println("No files matched the pattern")
+		return nil
+	}
 	n := totalFiles / 4
 
 	// Check if filename contains "BhavCopy"
 	for idx, bc := range bhavcopies {
 		dir, file := filepath.Split(bc)
+		log.Println("Processing file:", file)
 		matched, err := regexp.MatchString(`BhavCopy`, file)
 		if err != nil {
 			log.Fatalln("Incorrect regex;", err)
-			return
+			return err
 		}
 		// if it contains, then get the date part from file
 		if matched {
 			re, err := regexp.Compile(`\d{8}`)
 			if err != nil {
 				log.Fatalln("regex not correct")
+				return err
 			}
 			dt := re.FindString(file)
 			newfname := filepath.Join(dir, dt+"_bhav.csv")
-			os.Rename(bc, newfname)
+			if err := os.Rename(bc, newfname); err != nil {
+				log.Fatalln("Failed to rename file:", err)
+				return err
+			}
 		}
 		// print progress, at every 25% work done
 		if (idx+1)%n == 0 {
 			fmt.Printf("Renamed %d files...\n", idx+1)
 		}
 	}
+	return nil
 }
 
 // MergeFiles merges multiple csv files into one csv file
-// It checks the root directory by given filepattern to list files to be merged
+// It checks the root directory by given file pattern to list files to be merged
 // and merges in newfn csv file
 func MergeFiles(root, filepattern, newfn string) {
 	// get all the relevant files
@@ -63,7 +76,7 @@ func MergeFiles(root, filepattern, newfn string) {
 	n := totalFiles / 4
 
 	// merge files
-	mergedfile, err := os.Create(newfn)
+	mergedfile, err := os.Create(root + newfn)
 	if err != nil {
 		log.Fatalln("Error creating file:", err)
 	}
@@ -98,3 +111,7 @@ func MergeFiles(root, filepattern, newfn string) {
 		}
 	}
 }
+
+// Local Variables:
+// jinx-local-words: "filepath fmt newfn os"
+// End:
