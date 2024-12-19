@@ -31,27 +31,23 @@ func RenameFiles(root, filepattern string) error {
 	}
 	n := totalFiles / 4
 
+	// Regex compilation
+	var reDt, reBC *regexp.Regexp
+	reDt = regexp.MustCompile(`\d{8}`)
+	reBC = regexp.MustCompile(`BhavCopy`)
+
 	// Check if filename contains "BhavCopy"
 	for idx, bc := range bhavcopies {
 		dir, file := filepath.Split(bc)
-		log.Println("Processing file:", file)
-		matched, err := regexp.MatchString(`BhavCopy`, file)
-		if err != nil {
-			log.Fatalln("Incorrect regex;", err)
-			return err
-		}
-		// if it contains, then get the date part from file
-		if matched {
-			re, err := regexp.Compile(`\d{8}`)
-			if err != nil {
-				log.Fatalln("regex not correct")
-				return err
-			}
-			dt := re.FindString(file)
-			newfname := filepath.Join(dir, dt+"_bhav.csv")
-			if err := os.Rename(bc, newfname); err != nil {
-				log.Fatalln("Failed to rename file:", err)
-				return err
+		// if file name contains 'BhavCopy'
+		if reBC.MatchString(file) {
+			dt := reDt.FindString(file)
+			if dt != "" {
+				newfname := filepath.Join(dir, dt+"_bhav.csv")
+				if err := os.Rename(bc, newfname); err != nil {
+					log.Fatalln("Failed to rename file:", err)
+					return err
+				}
 			}
 		}
 		// print progress, at every 25% work done
@@ -113,5 +109,5 @@ func MergeFiles(root, filepattern, newfn string) {
 }
 
 // Local Variables:
-// jinx-local-words: "filepath fmt newfn os"
+// jinx-local-words: "BhavCopy filepath fmt newfn os"
 // End:
